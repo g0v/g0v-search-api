@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/css/bootstrap.css">
+</head>
+<body>
+<div class="container">
+    <form method="post" id="form">
+        <input type="text" name="query" id="query">
+        <button type="submit">搜尋</button>
+    </form>
+</div>
+
+<ul id="result">
+</ul>
+
+<script>
+$('#form').submit(function(e){
+    e.preventDefault();
+    var q = $('#query').val();
+    var query = {"query":{"query_string":{"query":q}},"from":0,"highlight":{"fields":{"content":{}}}};
+    $.get('query.php?query=' + JSON.stringify(query), function(ret){
+            $('#result').html('');
+            $('#result').append($('<li></li>').text('搜尋 「' + q + '」，共有 ' + ret.hits.total + ' 筆'))
+            for (var i = 0; i < ret.hits.hits.length; i ++) {
+                var hit = ret.hits.hits[i];
+                $('#result').append(
+                    $('<li></li>').text("[" + hit._source.source + "]" + hit._source.id)
+                    .append($('<div></div>').html(hit.highlight.content[0]))
+                );
+            }
+    }, 'json');
+
+});
+</script>
+</html>
