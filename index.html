@@ -26,8 +26,15 @@ $('#form').submit(function(e){
             $('#result').append($('<li></li>').text('搜尋 「' + q + '」，共有 ' + ret.hits.total + ' 筆'))
             for (var i = 0; i < ret.hits.hits.length; i ++) {
                 var hit = ret.hits.hits[i];
+                if ('hackpad' == hit._source.source) {
+                    var url = "https://g0v.hackpad.com/" + hit._source.id;
+                    var title = hit._source.data.title;
+                } else if ('repo' == hit._source.source) {
+                    var url = hit._source.data.html_url;
+                    var title = hit._source.data.name;
+                }
                 $('#result').append(
-                    $('<li></li>').text("[" + hit._source.source + "]" + hit._source.id)
+                        $('<li></li>').append($('<a></a>').attr('href', url).text('[' + hit._source.source + ']' + title))
                     .append($('<div></div>').html(hit.highlight.content[0]))
                 );
             }
