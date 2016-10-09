@@ -13,31 +13,108 @@
         <button type="submit">搜尋</button>
     </form>
 
+    <div class="panel panel-default">
+        <div class="panel-heading">Query 語法</div>
+        <div id="query_preview" class="preview-disable panel-body">點這邊顯示查詢語法</div>
+    </div>
+
     <ul id="result">
     </ul>
 </div>
 
 <script>
+$('#query_preview').click(function(e){
+    $('#query_preview').text(JSON.stringify(query)).removeClass('preview-disable');
+});
+
+$('#result')
+.on('click', '.source-filter', function(e){
+    e.preventDefault();
+    query.from = 0;
+    query_source = $(this).text();
+    query.query = {
+        bool: {
+            must: [
+                {term: {source: $(this).text()}},
+                {query_string:{query:query_string}}
+            ]
+        }
+    };
+    do_query();
+})
+.on('click', '.pager-filter', function(e){
+    e.preventDefault();
+    query.from = parseInt($(this).text()) * 10 - 10;
+    do_query();
+});
+
+var do_query = function(){
+    if (!$('#query_preview').is('.preview-disable')) {
+        $('#query_preview').text(JSON.stringify(query));
+    }
+    $.get('query.php?query=' + JSON.stringify(query), function(ret){
+        $('#result').html('');
+        var title = '搜尋 「' + query_string + '」';
+        if (query_source !== null) {
+            title += '，分類為 ' + query_source + ' 的結果';
+        }
+        title += '，共有 ' + ret.hits.total + ' 筆';
+        title += '，顯示第 ' + (query.from + 1) + ' 到第 ' + Math.min(query.from + 10, ret.hits.total) + ' 筆';
+        $('#result').append($('<li></li>').text(title));
+
+        var source_ul = $('<ul></ul>');
+        ret.aggregations.source_count.buckets.map(function(bucket){
+                source_li = $('<li></li>');
+                source_li.append($('<a></a>').text(bucket.key).attr('href', '#').addClass('source-filter'));
+                source_li.append('(' + bucket.doc_count + ')'   );
+                source_ul.append(source_li);
+        });
+
+        $('#result').append($('<li></li>').text('來源：').append(source_ul));
+
+        var pager_ul = $('<ul></ul>').addClass('pagination');
+        for (var i = 0; i < Math.ceil(ret.hits.total / 10); i ++) {
+            var a_dom = $('<a></a>').text(i + 1).addClass('pager-filter').attr('href', '#');
+            var li_dom = $('<li></li>').append(a_dom);
+            if (i * 10 == query.from) {
+                li_dom.addClass('active');
+            }
+            pager_ul.append(li_dom);
+        }
+        $('#result').append($('<li></li>').text('分頁：').append($('<nav aria-label="Page navigation"></nav>').append(pager_ul)));
+
+        for (var i = 0; i < ret.hits.hits.length; i ++) {
+            var hit = ret.hits.hits[i];
+            var url = hit._source.url;
+            var title = hit._source.title;
+            var d = new Date(1000 * hit._source.updated_at);
+
+            $('#result').append(
+                    $('<li></li>').append($('<a></a>').attr('href', url).text('[' + hit._source.source + ']' + title))
+                    .append(d.toDateString())
+                    .append($('<div></div>').html('undefined' !== typeof(hit.highlight) ? hit.highlight.content[0] : ''))
+            );
+        }
+    }, 'json');
+};
+
+var query;
+var query_string;
+var query_source;
+
 $('#form').submit(function(e){
     e.preventDefault();
-    var q = $('#query').val();
-    var query = {"query":{"query_string":{"query":q}},"from":0,"highlight":{"fields":{"content":{}}}};
-    $.get('query.php?query=' + JSON.stringify(query), function(ret){
-            $('#result').html('');
-            $('#result').append($('<li></li>').text('搜尋 「' + q + '」，共有 ' + ret.hits.total + ' 筆'))
-            for (var i = 0; i < ret.hits.hits.length; i ++) {
-                var hit = ret.hits.hits[i];
-                var url = hit._source.url;
-                var title = hit._source.title;
-                var d = new Date(1000 * hit._source.updated_at);
-
-                $('#result').append(
-                        $('<li></li>').append($('<a></a>').attr('href', url).text('[' + hit._source.source + ']' + title))
-                        .append(d.toDateString())
-                        .append($('<div></div>').html('undefined' !== typeof(hit.highlight) ? hit.highlight.content[0] : ''))
-                );
-            }
-    }, 'json');
+    var q = query_string = $('#query').val();
+    query_source = null;
+    query = {
+        query:{query_string:{query:q}},
+        from:0,
+        highlight:{fields:{content:{}}},
+        aggs:{
+            source_count: {terms:{field: "source"}}
+        }
+    };
+    do_query();
 
 });
 </script>
