@@ -27,16 +27,14 @@ $('#form').submit(function(e){
             $('#result').append($('<li></li>').text('搜尋 「' + q + '」，共有 ' + ret.hits.total + ' 筆'))
             for (var i = 0; i < ret.hits.hits.length; i ++) {
                 var hit = ret.hits.hits[i];
-                if ('hackpad' == hit._source.source) {
-                    var url = "https://g0v.hackpad.com/" + hit._source.id;
-                    var title = hit._source.data.title;
-                } else if ('repo' == hit._source.source) {
-                    var url = hit._source.data.html_url;
-                    var title = hit._source.data.name;
-                }
+                var url = hit._source.url;
+                var title = hit._source.title;
+                var d = new Date(1000 * hit._source.updated_at);
+
                 $('#result').append(
                         $('<li></li>').append($('<a></a>').attr('href', url).text('[' + hit._source.source + ']' + title))
-                    .append($('<div></div>').html(hit.highlight.content[0]))
+                        .append(d.toDateString())
+                        .append($('<div></div>').html('undefined' !== typeof(hit.highlight) ? hit.highlight.content[0] : ''))
                 );
             }
     }, 'json');
