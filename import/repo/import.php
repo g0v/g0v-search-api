@@ -27,10 +27,12 @@ $obj = json_decode($ret);
 $max_update = $obj->aggregations->max_update->value;
 error_log("update from timestamp {$max_update} " . date('(c)', $max_update));
 
+$c = 0;
 foreach (json_decode(file_get_contents($repo_path . 'repo_info.json')) as $key => $value) {
     if ($max_update and strtotime($value->updated_at) <= $max_update) {
         continue;
     }
+    $c ++;
 
     if (property_exists($value, 'readme_filename')) {
         $value->readme = file_get_contents($repo_path . $value->readme_filename);
@@ -58,3 +60,4 @@ foreach (json_decode(file_get_contents($repo_path . 'repo_info.json')) as $key =
         throw new Exception($info['http_code'] . $ret);
     }
 }
+error_log("update {$c} pads");
