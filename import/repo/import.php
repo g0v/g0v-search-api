@@ -5,10 +5,13 @@ $repo_path = "/tmp/g0v-repo-info/";
 
 if (!file_exists($repo_path)) {
     chdir(dirname($repo_path));
-    system("git clone https://github.com/jmehsieh/g0v-repo-info");
+    system("git clone https://github.com/jmehsieh/g0v-repo-info", $ret);
 } else {
     chdir($repo_path);
-    system("git pull");
+    system("git pull", $ret);
+}
+if ($ret !== 0) {
+    throw new Exception("git pull failed");
 }
 
 if (!getenv('SEARCH_URL')) {
