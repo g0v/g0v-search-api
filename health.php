@@ -6,7 +6,7 @@ $ret = array(
     'group_times' => array(),
     'warnings' => array(),
 );
-$groups = array('hackpad', 'repo');
+$groups = array('hackpad', 'repo', 'logbot');
 
 foreach ($groups as $group) {
     $curl = curl_init(getenv('SEARCH_URL') . '/entry/_search');
