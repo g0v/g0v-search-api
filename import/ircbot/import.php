@@ -6,7 +6,7 @@ if (!getenv('SEARCH_URL')) {
 }
 
 $curl = curl_init(getenv('SEARCH_URL') . '/entry/_search');
-curl_setopt($curl, CURLOPT_POSTFIELDS, '{"query":{"term":{"source":"ircbot"}},"size":0,"aggs":{"max_update":{"max":{"field":"updated_at"}}}}');
+curl_setopt($curl, CURLOPT_POSTFIELDS, '{"query":{"term":{"source":"logbot"}},"size":0,"aggs":{"max_update":{"max":{"field":"updated_at"}}}}');
 curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'GET');
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 $ret = curl_exec($curl);
