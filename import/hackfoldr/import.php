@@ -29,10 +29,9 @@ error_log("update from timestamp {$max_update} " . date('(c)', $max_update));
 
 $c = 0;
 foreach (json_decode(file_get_contents($repo_path . 'foldrs.json')) as $key => $value) {
-    // TODO: check updated_at
-    //if ($max_update and floor($value->last_backup_time) <= $max_update) {
-    //    continue;
-    //}
+    if ($max_update and strtotime($value->updated_at) <= $max_update) {
+        continue;
+    }
     if (!file_exists($repo_path . $key. '.json')) {
         throw new Exception("$key not found");
     }
@@ -56,7 +55,7 @@ foreach (json_decode(file_get_contents($repo_path . 'foldrs.json')) as $key => $
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode(array(
         'url' => $value->url,
         'title' => $title,
-        'updated_at' => 0,
+        'updated_at' => strtotime($value->updated_at),
         'source' => 'hackfoldr',
         'id' => $key,
         'content' => $content,
