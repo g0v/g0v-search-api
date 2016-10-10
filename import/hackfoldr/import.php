@@ -36,7 +36,16 @@ foreach (json_decode(file_get_contents($repo_path . 'foldrs.json')) as $key => $
     if (!file_exists($repo_path . $key. '.json')) {
         throw new Exception("$key not found");
     }
-    $content = file_get_contents($repo_path . $key. '.json');
+    $content = json_decode(file_get_contents($repo_path . $key. '.json'));
+    if (count($content) < 1) {
+        continue;
+    }
+    $headers = array_shift($content);
+    if ($headers[1] != '#title') {
+        continue;
+    }
+    $title = $content[0][1];
+    $content = trim(implode("\n", array_map(function($rows) { return $rows[1]; }, $content)));
 
     $curl = curl_init();
     $url = getenv('SEARCH_URL') . '/entry/hackfoldr-' . $key;
@@ -46,11 +55,11 @@ foreach (json_decode(file_get_contents($repo_path . 'foldrs.json')) as $key => $
     curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode(array(
         'url' => $value->url,
-        'title' => $value->title,
-        'updated_at' => floor($value->last_backup_time),
-        'source' => 'hackpad',
-        'id' => $padid,
-        'content' => $padid . "\n" . $value->title . "\n" . $value->content,
+        'title' => $title,
+        'updated_at' => 0,
+        'source' => 'hackfoldr',
+        'id' => $key,
+        'content' => $content,
         'data' => $value,
     )));
     $ret = curl_exec($curl);
