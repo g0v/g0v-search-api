@@ -103,9 +103,35 @@ var query;
 var query_string;
 var query_source;
 
+var queries = {};
+
+if (window.location.search) {
+    $.each(window.location.search.substr(1).split('&'),function(c,q){
+        var i = q.split('=');
+        queries[i[0].toString()] = i[1].toString();
+    });
+    console.log(queries);
+}
+
+if (queries.q) {
+    var q = query_string = queries.q;
+    $('#query').val(q);
+    query = {
+        query:{query_string:{query:q}},
+        from:0,
+        highlight:{fields:{content:{}}},
+        aggs:{
+            source_count: {terms:{field: "source"}}
+        }
+    };
+    do_query();
+}
+
 $('#form').submit(function(e){
     e.preventDefault();
     var q = query_string = $('#query').val();
+    window.location.search = 'q=' + q;
+
     query_source = null;
     query = {
         query:{query_string:{query:q}},
