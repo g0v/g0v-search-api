@@ -140,7 +140,8 @@ $('#form').submit(function(e){
         highlight:{fields:{content:{}}},
         aggs:{
             source_count: {terms:{field: "source"}}
-        }
+        },
+        sort:[{"updated_at": "desc"}]
     };
     do_query();
 
