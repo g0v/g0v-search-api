@@ -53,7 +53,7 @@ var do_query = function(){
     if (!$('#query_preview').is('.preview-disable')) {
         $('#query_preview').text(JSON.stringify(query));
     }
-    $.get('query.php?query=' + JSON.stringify(query), function(ret){
+    $.get('query.php?query=' + encodeURIComponent(JSON.stringify(query)), function(ret){
         $('#result').html('');
         var title = '搜尋 「' + query_string + '」';
         if (query_source !== null) {
@@ -114,7 +114,7 @@ if (window.location.search) {
 }
 
 if (queries.q) {
-    var q = query_string = queries.q;
+    var q = query_string = decodeURI(queries.q);
     $('#query').val(q);
     query = {
         query:{query_string:{query:q}},
@@ -129,7 +129,7 @@ if (queries.q) {
 
 $('#form').submit(function(e){
     e.preventDefault();
-    var q = query_string = $('#query').val();
+    var q = query_string = encodeURIComponent($('#query').val());
     window.location.search = 'q=' + q;
 
     query_source = null;
