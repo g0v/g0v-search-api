@@ -33,6 +33,7 @@ $('#result')
     e.preventDefault();
     query.from = 0;
     query_source = $(this).text();
+    query.sort = [{"updated_at": "desc"}];
     query.query = {
         bool: {
             must: [
