@@ -123,28 +123,15 @@ if (queries.q) {
         highlight:{fields:{content:{}}},
         aggs:{
             source_count: {terms:{field: "source"}}
-        }
+        },
+        sort: [{updated_at: "desc"}]
     };
     do_query();
 }
 
 $('#form').submit(function(e){
     e.preventDefault();
-    var q = query_string = encodeURIComponent($('#query').val());
-    window.location.search = 'q=' + q;
-
-    query_source = null;
-    query = {
-        query:{query_string:{query:q}},
-        from:0,
-        highlight:{fields:{content:{}}},
-        aggs:{
-            source_count: {terms:{field: "source"}}
-        },
-        sort:[{"updated_at": "desc"}]
-    };
-    do_query();
-
+    window.location.search = 'q=' + encodeURIComponent($('#query').val());
 });
 </script>
 </html>
