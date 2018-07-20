@@ -8,6 +8,7 @@ foreach (array('q') as $k) {
         $terms[] = urlencode($k) . '=' . urlencode($_GET[$k]);
     }
 }
+$terms[] = 'track_scores=true';
 
 if (count($terms)) {
     $url .= '?' . implode('&', $terms);

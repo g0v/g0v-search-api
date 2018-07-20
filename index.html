@@ -94,6 +94,7 @@ var do_query = function(){
             $('#result').append(
                     $('<li></li>').append($('<a></a>').attr('href', url).text('[' + hit._source.source + ']' + title))
                     .append(d.toDateString())
+                    .append('score:' + hit._score)
                     .append($('<div></div>').html('undefined' !== typeof(hit.highlight) ? hit.highlight.content[0] : ''))
             );
         }
@@ -124,7 +125,6 @@ if (queries.q) {
         aggs:{
             source_count: {terms:{field: "source"}}
         },
-        sort: [{updated_at: "desc"}]
     };
     do_query();
 }
