@@ -2,21 +2,37 @@
 
 date_default_timezone_set('Asia/Taipei');
 
+include(__DIR__ . '/Elastic.php');
+if (file_exists(__DIR__ . '/config.php')) {
+    include(__DIR__ . '/config.php');
+}
+
+if (!getenv('ELASTIC_URL')) {
+    throw new Exception("need ELASTIC_URL");
+}
+
 $ret = array(
     'group_times' => array(),
     'warnings' => array(),
 );
 $groups = array('hackpad', 'repo', 'logbot');
+$prefix = getenv('ELASTIC_PREFIX');
 
 foreach ($groups as $group) {
-    $curl = curl_init(getenv('SEARCH_URL') . '/entry/_search');
-    curl_setopt($curl, CURLOPT_POSTFIELDS, '{"query":{"term":{"source":"' . $group . '"}},"size":0,"aggs":{"max_update":{"max":{"field":"updated_at"}}}}');
-    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'GET');
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    if (!$content = curl_exec($curl)) {
+    try {
+        $obj = Elastic::dbQuery("/{$prefix}entry/_search", "GET", json_encode([
+            'query' => [
+                'term' => ['source' => $group],
+            ],
+            'size' => 0,
+            'aggs' => [
+                'max_update' => [ 'max' => ['field' => 'updated_at' ]],
+            ],
+        ]));
+    } catch (Exception $e) {
         $ret['warnings'][] = "API 抓取 {$group} 失敗";
+        continue;
     }
-    $obj = json_decode($content);
     $max_update = $obj->aggregations->max_update->value;
     $ret['group_times'][$group] = date('Y/m/d H:i:s', $max_update);
     if (time() - $max_update > 3 * 86400) {
