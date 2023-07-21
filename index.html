@@ -60,8 +60,8 @@ var do_query = function(){
         if (query_source !== null) {
             title += '，分類為 ' + query_source + ' 的結果';
         }
-        title += '，共有 ' + ret.hits.total + ' 筆';
-        title += '，顯示第 ' + (query.from + 1) + ' 到第 ' + Math.min(query.from + 10, ret.hits.total) + ' 筆';
+        title += '，共有 ' + ret.hits.total.value + ' 筆';
+        title += '，顯示第 ' + (query.from + 1) + ' 到第 ' + Math.min(query.from + 10, ret.hits.total.value) + ' 筆';
         $('#result').append($('<li></li>').text(title));
 
         var source_ul = $('<ul></ul>');
@@ -75,7 +75,7 @@ var do_query = function(){
         $('#result').append($('<li></li>').text('來源：').append(source_ul));
 
         var pager_ul = $('<ul></ul>').addClass('pagination');
-        for (var i = 0; i < Math.ceil(ret.hits.total / 10); i ++) {
+        for (var i = 0; i < Math.ceil(ret.hits.total.value / 10); i ++) {
             var a_dom = $('<a></a>').text(i + 1).addClass('pager-filter').attr('href', '#');
             var li_dom = $('<li></li>').append(a_dom);
             if (i * 10 == query.from) {
