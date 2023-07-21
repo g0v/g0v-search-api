@@ -14,16 +14,24 @@ if ($ret !== 0) {
     throw new Exception("git pull failed");
 }
 
-if (!getenv('SEARCH_URL')) {
-    throw new Exception("need SEARCH_URL");
+include(__DIR__ . '/../../Elastic.php');
+include(__DIR__ . '/../../config.php');
+
+if (!getenv('ELASTIC_URL')) {
+    throw new Exception("need ELASTIC_URL");
 }
 
-$curl = curl_init(getenv('SEARCH_URL') . '/entry/_search');
-curl_setopt($curl, CURLOPT_POSTFIELDS, '{"query":{"term":{"source":"repo"}},"size":0,"aggs":{"max_update":{"max":{"field":"updated_at"}}}}');
-curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'GET');
-curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-$ret = curl_exec($curl);
-$obj = json_decode($ret);
+
+$prefix = getenv('ELASTIC_PREFIX');
+$obj = Elastic::dbQuery("/{$prefix}entry/_search", "GET", json_encode([
+    'query' => [
+        'term' => ['source' => 'repo'],
+    ],
+    'size' => 0,
+    'aggs' => [
+        'max_update' => ['max' => ['field' => 'updated_at']],
+    ],
+]));
 $max_update = $obj->aggregations->max_update->value;
 error_log("update from timestamp {$max_update} " . date('(c)', $max_update));
 
@@ -39,13 +47,9 @@ foreach (json_decode(file_get_contents($repo_path . 'repo_info.json')) as $key =
     } else {
         $value->readme = '';
     }
-    $curl = curl_init();
-    $url = getenv('SEARCH_URL') . '/entry/repo-' . str_replace('/', '-', $key);
-    curl_setopt($curl, CURLOPT_URL, $url);
-    curl_setopt($curl, CURLOPT_HEADER, 0);
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
-    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode(array(
+
+    $k = str_replace('/', '-', $key);
+    Elastic::dbBulkInsert('entry', "repo-{$k}", [
         'source' => 'repo',
         'title' => $value->description,
         'url' => 'https://github.com/' . $key,
@@ -53,11 +57,7 @@ foreach (json_decode(file_get_contents($repo_path . 'repo_info.json')) as $key =
         'id' => $key,
         'content' => $value->name ."\n" . $value->description . "\n" . $value->readme,
         'data' => $value,
-    )));
-    $ret = curl_exec($curl);
-    $info = curl_getinfo($curl);
-    if (!in_array($info['http_code'], array(200, 201))) {
-        throw new Exception($info['http_code'] . $ret);
-    }
+    ]);
 }
+Elastic::dbBulkCommit();
 error_log("update {$c} pads");

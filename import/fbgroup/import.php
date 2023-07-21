@@ -2,9 +2,11 @@
 
 date_default_timezone_set('Asia/Taipei');
 $repo_path = "/tmp/g0v-fbpage";
+include(__DIR__ . '/../../Elastic.php');
+include(__DIR__ . '/../../config.php');
 
-if (!getenv('SEARCH_URL')) {
-    throw new Exception("need SEARCH_URL");
+if (!getenv('ELASTIC_URL')) {
+    throw new Exception("need ELASTIC_URL");
 }
 
 if (!file_exists($repo_path)) {
@@ -18,12 +20,16 @@ if ($ret !== 0) {
     throw new Exception("git pull failed");
 }
 
-$curl = curl_init(getenv('SEARCH_URL') . '/entry/_search');
-curl_setopt($curl, CURLOPT_POSTFIELDS, '{"query":{"term":{"source":"fbgroup"}},"size":0,"aggs":{"max_update":{"max":{"field":"updated_at"}}}}');
-curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'GET');
-curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-$ret = curl_exec($curl);
-$obj = json_decode($ret);
+$prefix = getenv('ELASTIC_PREFIX');
+$obj = Elastic::dbQuery("/{$prefix}entry/_search", "GET", json_encode([
+    'query' => [
+        'term' => ['source' => 'fbgroup'],
+    ],
+    'size' => 0,
+    'aggs' => [
+        'max_update' => ['max' => ['field' => 'updated_at']],
+    ],
+]));
 $max_update = $obj->aggregations->max_update->value;
 error_log("update from timestamp {$max_update} " . date('(c)', $max_update));
 
@@ -39,16 +45,10 @@ foreach (glob("{$repo_path}/*.json") as $json_file) {
         $body = trim($body) . "\n" .  $d->message;
     }
 
-    $curl = curl_init();
     $id = explode('_', $value->id)[1];
     $url = "https://facebook.com/{$value->id}";
 
-    $url = getenv('SEARCH_URL') . '/entry/fbgroup-' . $id;
-    curl_setopt($curl, CURLOPT_URL, $url);
-    curl_setopt($curl, CURLOPT_HEADER, 0);
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
-    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode(array(
+    Elastic::dbBulkInsert('entry', "fbgroup-{$id}", [
         'url' => 'https://facebook.com/' . $value->id,
         'title' => $title,
         'updated_at' => strtotime($value->updated_time),
@@ -56,12 +56,8 @@ foreach (glob("{$repo_path}/*.json") as $json_file) {
         'id' => $id,
         'content' => $title . "\n" . $body,
         'fbgroup_data' => json_encode($value),
-    )));
-    $ret = curl_exec($curl);
-    $info = curl_getinfo($curl);
+    ]);
     $c ++;
-    if (!in_array($info['http_code'], array(200, 201))) {
-        throw new Exception($info['http_code'] . $ret);
-    }
 }
+Elastic::dbBulkCommit();
 error_log("update {$c} pads");
